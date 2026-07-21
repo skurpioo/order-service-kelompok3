@@ -1,5 +1,9 @@
 package com.kelompok3.order_service.config;
 
+import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory;
+import org.springframework.amqp.rabbit.retry.RepublishMessageRecoverer;
+import org.springframework.amqp.rabbit.config.RetryInterceptorBuilder;
+import org.aopalliance.aop.Advice;
 import org.springframework.amqp.core.AmqpAdmin;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
@@ -66,5 +70,27 @@ public class RabbitMQConfig {
 
         return rabbitAdmin;
     }
+    @Bean
+public SimpleRabbitListenerContainerFactory rabbitListenerContainerFactory(
+        ConnectionFactory connectionFactory,
+        Jackson2JsonMessageConverter converter,
+        RabbitTemplate rabbitTemplate) {
 
+    SimpleRabbitListenerContainerFactory factory = new SimpleRabbitListenerContainerFactory();
+    factory.setConnectionFactory(connectionFactory);
+    factory.setMessageConverter(converter);
+    factory.setAdviceChain(retryInterceptor(rabbitTemplate));
+    return factory;
+}
+
+private Advice retryInterceptor(RabbitTemplate rabbitTemplate) {
+    return RetryInterceptorBuilder.stateless()
+            .maxAttempts(3)
+            .backOffOptions(2000, 2.0, 10000)
+            .recoverer(new RepublishMessageRecoverer(
+                    rabbitTemplate,
+                    DeadLetterConfig.DLQ_EXCHANGE,
+                    DeadLetterConfig.DLQ_ROUTING_KEY))
+            .build();
+}
 }

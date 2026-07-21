@@ -13,8 +13,8 @@ public class OrderConsumer {
     // Logger dipakai supaya kita bisa lihat bukti pesan diterima di console IDE.
     private static final Logger log = LoggerFactory.getLogger(OrderConsumer.class);
 
-    @RabbitListener(queues = "order.queue")
-    public void consumeOrderEvent(OrderEvent event) {
+    @RabbitListener(queues = "order.queue", containerFactory = "rabbitListenerContainerFactory")
+public void consumeOrderEvent(OrderEvent event) {
 
         log.info("Menerima pesanan: {}", event.getOrderId());
         log.info("Detail pesanan diterima -> produk: {}, qty: {}, status: {}",
@@ -58,8 +58,8 @@ public class OrderConsumer {
         // Contoh titik untuk simulasi kegagalan (dipakai Anggota 5 saat
         // menguji Retry & DLQ), boleh diaktifkan sementara untuk testing:
         //
-        // if (event.getQuantity() == null || event.getQuantity() <= 0) {
-        //     throw new RuntimeException("Quantity tidak valid, proses gagal!");
-        // }
+        if (event.getQuantity() == null || event.getQuantity() <= 0) {
+             throw new RuntimeException("Quantity tidak valid, proses gagal!");
+        }
     }
 }
